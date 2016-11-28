@@ -37,10 +37,13 @@ class TransactionLine
 
     const PERFORMANCETYPE_SERVICES = 'services';
     const PERFORMANCETYPE_GOODS = 'goods';
+    
+    private static $count = 1;
 
     public function __construct()
     {
-        $this->ID = uniqid();
+        $this->ID = static::$count;
+        static::$count++;
     }
 
     public function getID()
