@@ -80,7 +80,7 @@ class Service
      *
      * @access public
      * @param Document $document A class that extended Secure\Document
-     * @return \DOMDocument The response from the request
+     * @return Response The response from the request
      */
     public function send(\DOMDocument $document)
     {
