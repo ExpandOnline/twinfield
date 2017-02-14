@@ -4,6 +4,7 @@ namespace Pronamic\Twinfield\Customer;
 use \Pronamic\Twinfield\Factory\ParentFactory;
 use \Pronamic\Twinfield\Customer\Mapper\CustomerMapper;
 use \Pronamic\Twinfield\Request as Request;
+use Pronamic\Twinfield\Response\Response;
 
 /**
  * CustomerFactory
@@ -88,6 +89,31 @@ class CustomerFactory extends ParentFactory
             }
         }
     }
+
+	/**
+	 * @param string $dimType
+	 *
+	 * @return bool|\DOMDocument
+	 */
+	public function getAll($dimType = 'CRD')
+	{
+		if ($this->getLogin()->process()) {
+
+			$service = $this->getService();
+
+			$request_customer = new Request\Read\Customer(null, null, $dimType);
+
+			$response = $service->send($request_customer);
+
+			$this->setResponse($response);
+
+			if ($response->isSuccessful()) {
+				return $response->getResponseDocument();
+			} else {
+				return false;
+			}
+		}
+	}
     
     /**
      * Requests all customers from the List Dimension Type.
