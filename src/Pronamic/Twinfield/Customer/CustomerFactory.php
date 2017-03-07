@@ -92,16 +92,19 @@ class CustomerFactory extends ParentFactory
 
 	/**
 	 * @param string $dimType
+	 * @param string|null $office
 	 *
 	 * @return bool|\DOMDocument
 	 */
-	public function getAll($dimType = 'CRD')
+	public function getAll($dimType = 'CRD', $office = null)
 	{
 		if ($this->getLogin()->process()) {
 
 			$service = $this->getService();
-
-			$request_customer = new Request\Read\Customer(null, null, $dimType);
+			if (!$office) {
+				$office = $this->getConfig()->getOffice();
+			}
+			$request_customer = new Request\Read\Customer($office, null, $dimType);
 
 			$response = $service->send($request_customer);
 
