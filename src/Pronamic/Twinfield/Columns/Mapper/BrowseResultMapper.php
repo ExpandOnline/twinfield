@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: sven
- * Date: 6/30/17
- * Time: 3:33 PM
- */
-
 namespace Pronamic\Twinfield\Columns\Mapper;
 
 use Pronamic\Twinfield\Columns\BrowseRow;
@@ -41,8 +34,6 @@ class BrowseResultMapper
         $responseDOM = $response->getResponseDocument();
         $browse = $responseDOM->getElementsByTagName('browse')->item(0);
         $rows = [];
-        dump($browse->ownerDocument->saveXML($browse));
-        die();
         foreach ($browse->getElementsByTagName('tr') as $row) {
             $rows[] = new BrowseRow($row);
         }

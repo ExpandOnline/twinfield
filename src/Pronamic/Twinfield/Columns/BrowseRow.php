@@ -19,8 +19,6 @@ class BrowseRow
      */
     public function __construct(\DOMElement $data)
     {
-
-        dump($data->ownerDocument->saveXML($data));
         $this->load($data);
     }
 
