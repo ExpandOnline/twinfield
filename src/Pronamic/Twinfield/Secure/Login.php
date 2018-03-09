@@ -103,7 +103,11 @@ class Login
     public function process()
     {
         // Process logon
-        if ($this->config->getClientToken() != '') {
+		if (!empty($this->config->getUsername()) && empty($this->config->getPassword())) {
+			$this->processed = true;
+			$this->cluster = 'https://accounting.twinfield.com';
+			return true;
+		} elseif ($this->config->getClientToken() != '') {
             $response = $this->soapLoginClient->OAuthLogon($this->config->getCredentials());
             $result = $response->OAuthLogonResult;
         } else {
@@ -147,6 +151,17 @@ class Login
      */
     public function getHeader()
     {
+		if (!empty($this->config->getUsername()) && empty($this->config->getPassword())) {
+			return new \SoapHeader(
+				'http://www.twinfield.com/',
+				'Header',
+				array(
+					'AccessToken' => $this->config->getUsername(),
+					'CompanyCode' => $this->config->getOffice(),
+				)
+			);
+		}
+
         if (! $this->processed || is_null($this->cluster)) {
             $this->process();
         }
