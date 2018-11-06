@@ -97,7 +97,6 @@ class HierarchyFactory extends FinderFactory
 	}
 
 	public function getName($office, $type, $code) {
-		debug($code);
 		$responseXml = $this->processXmlString("			
 			<read>
 				<type>dimensions</type>
