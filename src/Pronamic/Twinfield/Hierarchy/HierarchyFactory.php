@@ -42,9 +42,12 @@ class HierarchyFactory extends FinderFactory
 	public function load($office, $code)
 	{
 		$generalLedgerFactory = new GeneralLedgerFactory($this->getConfig());
+		$generalLedgerFactory->getClient('/webservices/session.asmx?wsdl')->selectCompany(['company' => $office]);
+
 		$basNames = $generalLedgerFactory->listNames([['dimtype','BAS'], ['office', $office]]);
 		$pnlNames = $generalLedgerFactory->listNames([['dimtype','PNL'], ['office', $office]]);
 		if ($this->getLogin()->process()) {
+			$this->getClient('/webservices/session.asmx?wsdl')->selectCompany(['company' => $office]);
 			$result = $this->getClient('/webservices/hierarchies.asmx?wsdl')->Load(['hierarchyCode' => $code])->hierarchy;
 			$response = [];
 			if (!property_exists($result->RootNode->ChildNodes, 'HierarchyNode')) {
@@ -65,12 +68,24 @@ class HierarchyFactory extends FinderFactory
 					$generalLedgers = is_array($subcategory->Accounts->HierarchyAccount)
 						? $subcategory->Accounts->HierarchyAccount : [$subcategory->Accounts->HierarchyAccount];
 					foreach ($generalLedgers as $generalLedger) {
+						$name = null;
+						if($generalLedger->Type == 'BAS' && isset($basNames[$generalLedger->Code])) {
+							$name = $basNames[$generalLedger->Code];
+						}
+						if($generalLedger->Type != 'BAS' && isset($pnlNames[$generalLedger->Code])) {
+							$name = $pnlNames[$generalLedger->Code];
+						}
+						// Hidden general ledgers will not show in the finder, so get them in a different way.
+						if($name === null) {
+							$name = $this->getName($office, $generalLedger->Type, $generalLedger->Code);
+						}
+
 						$response[] = [
 							'hierarchy_code' => $code,
 							'category' => $category->Name,
 							'sub_category' => $subcategory->Name,
 							'code' => $generalLedger->Code,
-							'name' => $generalLedger->Type == 'BAS' ? $basNames[$generalLedger->Code] : $pnlNames[$generalLedger->Code],
+							'name' => $name,
 							'type' => $generalLedger->Type,
 							'balance_type' => $generalLedger->BalanceType,
 						];
@@ -79,6 +94,21 @@ class HierarchyFactory extends FinderFactory
 			}
 			return $response;
 		}
+	}
+
+	public function getName($office, $type, $code) {
+		debug($code);
+		$responseXml = $this->processXmlString("			
+			<read>
+				<type>dimensions</type>
+				<office>$office</office>
+				<dimtype>$type</dimtype>
+				<code>$code</code>
+			</read>
+		");
+		$responseDOM = new \DOMDocument();
+		$responseDOM->loadXML($responseXml->ProcessXmlStringResult);
+		return $responseDOM->getElementsByTagName('dimension')->item(0)->getElementsByTagName('name')->item(0)->nodeValue;
 	}
 
 }
