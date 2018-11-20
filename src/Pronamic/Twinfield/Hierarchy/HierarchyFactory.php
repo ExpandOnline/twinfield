@@ -53,9 +53,32 @@ class HierarchyFactory extends FinderFactory
 			if (!property_exists($result->RootNode->ChildNodes, 'HierarchyNode')) {
 				return $response;
 			}
+
 			$categories = is_array($result->RootNode->ChildNodes->HierarchyNode)
 				? $result->RootNode->ChildNodes->HierarchyNode : [$result->RootNode->ChildNodes->HierarchyNode];
 			foreach ($categories as $category) {
+				// If no subcategories exist, the general ledgers reside dirrectly in the category under accounts
+				if (property_exists($category, 'Accounts') && property_exists($category->Accounts, 'HierarchyAccount')) {
+					$generalLedgers = $category->Accounts->HierarchyAccount;
+					if (!is_Array($generalLedgers)) {
+						//When only 1 account is returned, twinfield doesn't return it as an array.
+						$generalLedgers = [$generalLedgers];
+					}
+					foreach($generalLedgers as $generalLedger) {
+							$name = $this->getNameForGeneralLedger($office, $generalLedger, $basNames, $pnlNames);
+							$response[] = [
+								'hierarchy_code' => $code,
+								'category' => $category->Name,
+								'sub_category' => $category->Name,
+								'code' => $generalLedger->Code,
+								'name' => $name,
+								'type' => $generalLedger->Type,
+								'balance_type' => $generalLedger->BalanceType,
+							];
+						}
+
+
+				}
 				if (!property_exists($category->ChildNodes, 'HierarchyNode')) {
 					continue;
 				}
@@ -68,17 +91,8 @@ class HierarchyFactory extends FinderFactory
 					$generalLedgers = is_array($subcategory->Accounts->HierarchyAccount)
 						? $subcategory->Accounts->HierarchyAccount : [$subcategory->Accounts->HierarchyAccount];
 					foreach ($generalLedgers as $generalLedger) {
-						$name = null;
-						if($generalLedger->Type == 'BAS' && isset($basNames[$generalLedger->Code])) {
-							$name = $basNames[$generalLedger->Code];
-						}
-						if($generalLedger->Type != 'BAS' && isset($pnlNames[$generalLedger->Code])) {
-							$name = $pnlNames[$generalLedger->Code];
-						}
-						// Hidden general ledgers will not show in the finder, so get them in a different way.
-						if($name === null) {
-							$name = $this->getName($office, $generalLedger->Type, $generalLedger->Code);
-						}
+						$name = $this->getNameForGeneralLedger($office, $generalLedger, $basNames, $pnlNames);
+
 
 						$response[] = [
 							'hierarchy_code' => $code,
@@ -96,6 +110,22 @@ class HierarchyFactory extends FinderFactory
 		}
 	}
 
+	protected function getNameForGeneralLedger($office, $generalLedger, $basNames, $pnlNames) {
+		$name = null;
+		if ($generalLedger->Type == 'BAS' && isset($basNames[$generalLedger->Code])) {
+			$name = $basNames[$generalLedger->Code];
+		}
+		if ($generalLedger->Type != 'BAS' && isset($pnlNames[$generalLedger->Code])) {
+			$name = $pnlNames[$generalLedger->Code];
+		}
+		// Hidden general ledgers will not show in the finder, so get them in a different way.
+		if ($name === null) {
+			$name = $this->getName($office, $generalLedger->Type, $generalLedger->Code);
+		}
+
+		return $name;
+	}
+
 	public function getName($office, $type, $code) {
 		$responseXml = $this->processXmlString("			
 			<read>
@@ -105,6 +135,7 @@ class HierarchyFactory extends FinderFactory
 				<code>$code</code>
 			</read>
 		");
+
 		$responseDOM = new \DOMDocument();
 		$responseDOM->loadXML($responseXml->ProcessXmlStringResult);
 		return $responseDOM->getElementsByTagName('dimension')->item(0)->getElementsByTagName('name')->item(0)->nodeValue;
