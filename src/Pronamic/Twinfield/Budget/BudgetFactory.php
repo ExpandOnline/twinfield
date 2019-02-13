@@ -39,8 +39,9 @@ class BudgetFactory extends FinderFactory
 	 *
 	 * @return array
 	 */
-	public function listAll($office, $year)
-	{
+	public function listAll($office, $year) {
+		$creds = $this->getLogin()->getConfig()->getCredentials();
+		$this->getLogin()->getConfig()->setCredentials($creds['user'], $creds['password'], $creds['organisation'], $office);
 		$budgetNames = $this->listNames('*', 0, 1, 100, [
 			[
 				'office',
@@ -48,52 +49,44 @@ class BudgetFactory extends FinderFactory
 			]
 		]);
 		if ($this->getLogin()->process()) {
-			$service = $this->getService();
-			$budgets = array();
+
+			$resultArray = [];
+
 			foreach ($budgetNames as $budgetCode => $budgetName) {
-				$budgetRequest = new Request\Catalog\Budget();
-				$budgetRequest->addBudget($budgetCode);
-				$budgetRequest->setDim1From(0);
-				$budgetRequest->setDim1To(9999);
-				$budgetRequest->setOffice($office);
-				$budgetRequest->setPeriodFrom(0);
-				$budgetRequest->setPeriodTo(56);
-				$budgetRequest->setYear($year);
-				$response = $service->send($budgetRequest);
-				$this->setResponse($response);
-				if ($response->isSuccessful()) {
-					$responseDOM = $response->getResponseDocument();
-					foreach ((new \DOMXPath($responseDOM))->query('//budgets/budget') as $budget) {
-						$budgetArray = [];
-						/**
-						 * @var \DOMElement $budget
-						 */
-						$budgetArray['period'] = $budget->getElementsByTagName('period')->item(0)->textContent;
-						$dim1 = $budget->getElementsByTagName('dim1')->item(0);
-						$budgetArray['dim1'] = [
-							'code' => $dim1->textContent,
-							'name' => $dim1->getAttribute('name'),
-							'type' => $dim1->getAttribute('type'),
-						];
-						$budgetArray['current_balance'] = $budget->getElementsByTagName('current')->item(0)
-							->getElementsByTagName('balance')->item(0)->textContent;
-						$budgetArray['budget_balance'] = $budget->getElementsByTagName('budget')->item(0)
-							->getElementsByTagName('balance')->item(0)->textContent;
-						$groups = [];
-						foreach ($budget->getElementsByTagName('group') as $group) {
-							$groups[] = [
-								'id' => $group->getAttribute('id'),
-								'name' => $group->getAttribute('name'),
-								'code' => $group->textContent,
-							];
-						}
-						$budgetArray['groups'] = $groups;
-						$budgetArray['name'] = $budgetName;
-						$budgets[] = $budgetArray;
-					}
+				$result = $this->getClient('/webservices/BudgetService.svc?wsdl')->Query(
+					new \SoapVar('<ns1:Query i:type="b:GetBudgetByCostCenter" xmlns:a="http://schemas.datacontract.org/2004/07/Twinfield.WebServices" xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns:b="http://schemas.datacontract.org/2004/07/Twinfield.WebServices.BudgetService">
+			<b:Code>' . $budgetCode . '</b:Code>
+			<b:Dim1From/>
+			<b:Dim1To/>
+			<b:Dim2From/>
+			<b:Dim2To/>
+			<b:Dim3From/>
+			<b:Dim3To/>
+			<b:IncludeFinal>true</b:IncludeFinal>
+			<b:IncludeProvisional>true</b:IncludeProvisional>
+			<b:PeriodFrom>0</b:PeriodFrom>
+			<b:PeriodTo>12</b:PeriodTo>
+			<b:Year>' . $year . '</b:Year>
+		</ns1:Query>', XSD_ANYXML)
+				);
+
+				if (!property_exists($result->BudgetTotals, 'GetBudgetTotalResult')) {
+					return [];
 				}
+				foreach ($result->BudgetTotals->GetBudgetTotalResult as $budget) {
+
+					$budget->Code = $budgetCode;
+					$budget->Name = $budgetName;
+
+					$resultArray[] = $budget;
+
+
+				}
+
 			}
-			return $budgets;
+
+			return $resultArray;
 		}
 	}
+
 }
