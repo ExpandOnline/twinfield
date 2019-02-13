@@ -139,6 +139,10 @@ class Login
         return false;
     }
 
+	public function getConfig() {
+		return $this->config;
+	}
+
     /**
      * Gets a new instance of the soap header.
      *
@@ -149,9 +153,23 @@ class Login
      * @access public
      * @return \SoapHeader
      */
-    public function getHeader()
+    public function getHeader($wsdl = null)
     {
 		if (!empty($this->config->getUsername()) && empty($this->config->getPassword())) {
+
+			if (!is_null($wsdl) && (strpos($wsdl, '.svc') !== false)) {
+				return new \SoapHeader(
+					'http://www.twinfield.com/',
+					'Authentication',
+					new \SoapVar(
+						[
+							new \SoapVar($this->config->getUsername(), XSD_STRING, null, null, 'AccessToken', 'http://schemas.datacontract.org/2004/07/Twinfield.WebServices.Shared'),
+							new \SoapVar($this->config->getOffice(), XSD_STRING, null, null, 'CompanyCode', 'http://schemas.datacontract.org/2004/07/Twinfield.WebServices.Shared')
+						]
+						, SOAP_ENC_OBJECT)
+				);
+			}
+
 			return new \SoapHeader(
 				'http://www.twinfield.com/',
 				'Header',
@@ -165,6 +183,9 @@ class Login
         if (! $this->processed || is_null($this->cluster)) {
             $this->process();
         }
+
+
+
 
         return new \SoapHeader(
             'http://www.twinfield.com/',
@@ -190,7 +211,7 @@ class Login
             $this->process();
         }
 		$wsdl = is_null($wsdl) ? $this->clusterWSDL : $wsdl;
-        $header = $this->getHeader();
+        $header = $this->getHeader($wsdl);
         // Makes a new client, and assigns the header to it
         $client = new SoapClient(sprintf($wsdl, $this->cluster), $this->config->getSoapClientOptions());
         $client->__setSoapHeaders($header);
