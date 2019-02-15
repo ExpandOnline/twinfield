@@ -37,12 +37,28 @@ class OfficeFactory extends FinderFactory
         $offices = [];
         foreach($response->data->Items->ArrayOfString as $officeArray)
         {
+        	$fullOffice = $this->read($officeArray->string[0]);
             $office = new Office();
             $office->setCode($officeArray->string[0]);
             $office->setCountryCode($officeArray->string[2]);
             $office->setName($officeArray->string[1]);
+            $office->setReportingCurrency($fullOffice->getElementsByTagName('general')->item(0)->getElementsByTagName('reportingcurrency')->item(0)->nodeValue);
+            $office->setBaseCurrency($fullOffice->getElementsByTagName('general')->item(0)->getElementsByTagName('basecurrency')->item(0)->nodeValue);
             $offices[] = $office;
         }
         return $offices;
     }
+
+	public function read($office) {
+		$responseXml = $this->processXmlString("			
+			<read>
+				<type>office</type>
+				<code>$office</code>
+			</read>
+		");
+
+		$responseDOM = new \DOMDocument();
+		$responseDOM->loadXML($responseXml->ProcessXmlStringResult);
+		return $responseDOM->getElementsByTagName('office')->item(0);
+	}
 }
