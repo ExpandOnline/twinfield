@@ -17,6 +17,16 @@ class Office
      */
     private $name;
 
+	/**
+	 * @var string
+	 */
+    private $baseCurrency;
+
+	/**
+	 * @var string
+	 */
+    private $reportingCurrency;
+
     public function getCode()
     {
         return $this->code;
@@ -46,4 +56,34 @@ class Office
     {
         $this->name = $name;
     }
+
+	/**
+	 * @return string
+	 */
+	public function getBaseCurrency(): string {
+		return $this->baseCurrency;
+	}
+
+	/**
+	 * @param string $baseCurrency
+	 */
+	public function setBaseCurrency(string $baseCurrency) {
+		$this->baseCurrency = $baseCurrency;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function getReportingCurrency(): string {
+		return $this->reportingCurrency;
+	}
+
+	/**
+	 * @param string $reportingCurrency
+	 */
+	public function setReportingCurrency(string $reportingCurrency) {
+		$this->reportingCurrency = $reportingCurrency;
+	}
+
+
 }
