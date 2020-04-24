@@ -29,9 +29,10 @@ class BrowseCell
     }
 
     public function load(\DOMNode $xml) {
-        $this->field = $xml->attributes->getNamedItem('field')->nodeValue;
-        $this->hideForUser = $xml->attributes->getNamedItem('hideforuser')->nodeValue;
-        $this->type = $xml->attributes->getNamedItem('type')->nodeValue;
+        // Using indexes for performance reasons. This means if twinfield changes the order of attributes this will break
+        $this->field = $xml->attributes->item(0)->nodeValue;
+        $this->hideForUser = $xml->attributes->item(1)->nodeValue;
+        $this->type = $xml->attributes->item(2)->nodeValue;
         $this->value = $xml->nodeValue;
     }
 
