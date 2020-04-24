@@ -34,7 +34,14 @@ class BrowseResultMapper
         $responseDOM = $response->getResponseDocument();
         $browse = $responseDOM->getElementsByTagName('browse')->item(0);
         $rows = [];
-        foreach ($browse->getElementsByTagName('tr') as $row) {
+        $first = true;
+        // We browse childNodes instead of finding the <tr>s, as that is extremely slow in large datasets
+        foreach ($browse->childNodes as $row) {
+        	if($first) {
+        		// Skip the first row since it is the headers
+        		$first = false;
+        		continue;
+			}
             $rows[] = new BrowseRow($row);
         }
         return $rows;
