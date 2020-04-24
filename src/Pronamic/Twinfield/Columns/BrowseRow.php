@@ -26,10 +26,17 @@ class BrowseRow
      * @param \DOMDocument $xml
      */
     public function load(\DOMNode $xml) {
-        foreach ($xml->getElementsByTagName('td') as $td) {
-            $cell = new BrowseCell($td);
-            $this->cells[$cell->getField()] = $cell;
-        }
+        // We loop through childNodes instead of finding by element name purely for performance reasons
+		// We can recognise whether it is a td or not by if it has any attributes.
+    	foreach($xml->childNodes as $td) {
+    		/** @var \DOMElement $td */
+    		if($td->hasAttributes() === false) {
+    			//means it is not a td
+				continue;
+			}
+			$cell = new BrowseCell($td);
+			$this->cells[$cell->getField()] = $cell;
+		}
     }
 
     /**
