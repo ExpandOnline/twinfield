@@ -57,7 +57,7 @@ class HierarchyFactory extends FinderFactory
 			$categories = is_array($result->RootNode->ChildNodes->HierarchyNode)
 				? $result->RootNode->ChildNodes->HierarchyNode : [$result->RootNode->ChildNodes->HierarchyNode];
 			foreach ($categories as $category) {
-				// If no subcategories exist, the general ledgers reside dirrectly in the category under accounts
+				// If no subcategories exist, the general ledgers reside directly in the category under accounts
 				if (property_exists($category, 'Accounts') && property_exists($category->Accounts, 'HierarchyAccount')) {
 					$generalLedgers = $category->Accounts->HierarchyAccount;
 					if (!is_Array($generalLedgers)) {
@@ -79,35 +79,41 @@ class HierarchyFactory extends FinderFactory
 
 
 				}
-				if (!property_exists($category->ChildNodes, 'HierarchyNode')) {
-					continue;
-				}
-				$subcategories = is_array($category->ChildNodes->HierarchyNode)
-					? $category->ChildNodes->HierarchyNode : [$category->ChildNodes->HierarchyNode];
-				foreach ($subcategories as $subcategory) {
-					if (!property_exists($subcategory->Accounts, 'HierarchyAccount')) {
-						continue;
-					}
-					$generalLedgers = is_array($subcategory->Accounts->HierarchyAccount)
-						? $subcategory->Accounts->HierarchyAccount : [$subcategory->Accounts->HierarchyAccount];
-					foreach ($generalLedgers as $generalLedger) {
-						$name = $this->getNameForGeneralLedger($office, $generalLedger, $basNames, $pnlNames);
-
-
-						$response[] = [
-							'hierarchy_code' => $code,
-							'category' => $category->Name,
-							'sub_category' => $subcategory->Name,
-							'code' => $generalLedger->Code,
-							'name' => $name,
-							'type' => $generalLedger->Type,
-							'balance_type' => $generalLedger->BalanceType,
-						];
-					}
-				}
+				$response = array_merge($response, $this->recursivelyGetChildGeneralLedgers($category, $office, $basNames, $pnlNames, $code));
 			}
 			return $response;
 		}
+	}
+
+	protected function recursivelyGetChildGeneralLedgers($level, $office, $basNames, $pnlNames, $code, $category = null, $subcategory = null) {
+		$response = [];
+		if (!property_exists($level->ChildNodes, 'HierarchyNode')) {
+			return $response;
+		}
+		$children = is_array($level->ChildNodes->HierarchyNode)
+			? $level->ChildNodes->HierarchyNode : [$level->ChildNodes->HierarchyNode];
+		foreach ($children as $child) {
+			$response = array_merge($response, $this->recursivelyGetChildGeneralLedgers($child, $office, $basNames, $pnlNames, $code, $category ?? $level->Name, $subcategory ?? $child->Name));
+			if (!property_exists($child->Accounts, 'HierarchyAccount')) {
+				continue;
+			}
+			$generalLedgers = is_array($child->Accounts->HierarchyAccount)
+				? $child->Accounts->HierarchyAccount : [$child->Accounts->HierarchyAccount];
+			foreach ($generalLedgers as $generalLedger) {
+				$name = $this->getNameForGeneralLedger($office, $generalLedger, $basNames, $pnlNames);
+
+				$response[] = [
+					'hierarchy_code' => $code,
+					'category' => $category ?? $level->Name,
+					'sub_category' => $subcategory ?? $child->Name,
+					'code' => $generalLedger->Code,
+					'name' => $name,
+					'type' => $generalLedger->Type,
+					'balance_type' => $generalLedger->BalanceType,
+				];
+			}
+		}
+		return $response;
 	}
 
 	protected function getNameForGeneralLedger($office, $generalLedger, $basNames, $pnlNames) {
