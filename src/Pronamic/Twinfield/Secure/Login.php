@@ -45,7 +45,7 @@ class Login
      * @access private
      * @var SoapClient
      */
-    private $soapLoginClient;
+    protected $soapLoginClient;
 
     /**
      * The response from the login client, when
